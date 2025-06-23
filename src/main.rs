@@ -89,7 +89,6 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
         layout,
         settings,
         sync_sender,
-        // project_dirs,
         config,
         editor,
     ); // create livesplit-core renderer object
