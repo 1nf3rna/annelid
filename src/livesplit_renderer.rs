@@ -24,9 +24,9 @@ pub enum ThreadEvent {
     TimerReset,
 }
 
-pub struct GlobalState {
-    layout_editor: livesplit_core::LayoutEditor,
-}
+// pub struct GlobalState {
+    // layout_editor: livesplit_core::LayoutEditor,
+// }
 
 pub struct LiveSplitCoreRenderer {
     layout: Layout,
@@ -46,7 +46,6 @@ pub struct LiveSplitCoreRenderer {
     load_errors: Vec<anyhow::Error>,
     show_edit_layout_dialog: std::sync::Arc<AtomicBool>,
     layout_editor: livesplit_core::layout::Editor,
-    show_edit_splits_dialog: bool,
 }
 
 fn show_children(
@@ -109,7 +108,6 @@ impl LiveSplitCoreRenderer {
             load_errors: vec![],
             show_edit_layout_dialog: Arc::new(AtomicBool::new(false)),
             layout_editor: editor,
-            show_edit_splits_dialog: false,
         }
     }
 
@@ -705,6 +703,32 @@ impl LiveSplitCoreRenderer {
         //         },
         //     );
         // }
+        // let editor = livesplit_core::LayoutEditor::new(self.layout.clone()).unwrap();
+            if self.show_edit_layout_dialog.load(Ordering::Relaxed) {
+
+            let editor = livesplit_core::LayoutEditor::state(&self.layout_editor, &mut self.image_cache);
+            let show_deferred_viewport = self.show_edit_layout_dialog.clone();
+            ctx.show_viewport_deferred(
+                egui::ViewportId::from_hash_of("deferred_viewport"),
+                egui::ViewportBuilder::default()
+                    .with_title("Layout Editor")
+                    .with_inner_size([200.0, 100.0]),
+                move |ctx, class| {
+                    assert!(
+                        class == egui::ViewportClass::Deferred,
+                        "This egui backend doesn't support multiple viewports"
+                    );
+
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        ui.label("Hello from deferred viewport");
+                    });
+                    if ctx.input(|i| i.viewport().close_requested()) {
+                        // Tell parent to close us.
+                        show_deferred_viewport.store(false, Ordering::Relaxed);
+                    }
+                },
+            );
+        }
     }
 }
 
@@ -892,31 +916,7 @@ impl eframe::App for LiveSplitCoreRenderer {
                 }
             });
             self.open_layout_edit_dialog(ctx);
-            let editor = livesplit_core::LayoutEditor::new(self.layout.clone()).unwrap();
-            if self.show_edit_layout_dialog.load(Ordering::Relaxed) {
-            let show_deferred_viewport = self.show_edit_layout_dialog.clone();
-            // ctx.show_viewport_deferred(
-            //     egui::ViewportId::from_hash_of("deferred_viewport"),
-            //     egui::ViewportBuilder::default()
-            //         .with_title("Layout Editor")
-            //         .with_inner_size([200.0, 100.0]),
-            //     move |ctx, class| {
-            //         assert!(
-            //             class == egui::ViewportClass::Deferred,
-            //             "This egui backend doesn't support multiple viewports"
-            //         );
-
-            //         egui::CentralPanel::default().show(ctx, |ui| {
-            //             ui.label("Hello from deferred viewport");
-            //             livesplit_core::LayoutEditor::state(&editor, &mut self.image_cache);
-            //         });
-            //         if ctx.input(|i| i.viewport().close_requested()) {
-            //             // Tell parent to close us.
-            //             show_deferred_viewport.store(false, Ordering::Relaxed);
-            //         }
-            //     },
-            // );
-        }
+            
 
         settings_editor
             .open(&mut self.show_settings_editor)
